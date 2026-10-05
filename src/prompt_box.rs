@@ -211,6 +211,13 @@ fn input_box(kind: &str, lines: &[Line]) -> Option<Vec<Line>> {
             let top = (0..bottom).rev().find(|&i| is_rule(&lines[i]))?;
             Some(lines[top + 1..bottom].to_vec())
         }
+        // `omp` draws its editor as `▎`-prefixed lines above the status
+        // bar; the last run of them is the box.
+        "omp" => {
+            let bottom = last(&|_, l| trimmed_starts(l, "▎"))?;
+            let top = (0..=bottom).rev().take_while(|&i| trimmed_starts(&lines[i], "▎")).last()?;
+            Some(lines[top..=bottom].iter().map(|line| after(line, '▎').unwrap_or_default()).collect())
+        }
         _ => None,
     }
 }
@@ -239,7 +246,7 @@ pub fn box_text(kind: &str, screen: &str) -> Option<String> {
 
 /// True for the kinds whose input box this module can find.
 pub fn knows(kind: &str) -> bool {
-    matches!(kind, "claude" | "codex" | "cursor" | "gemini" | "opencode" | "pi")
+    matches!(kind, "claude" | "codex" | "cursor" | "gemini" | "opencode" | "pi" | "omp")
 }
 
 /// The screen's plain text, styling dropped.
@@ -257,7 +264,7 @@ mod tests {
 
     #[test]
     fn every_supported_kind_tells_an_empty_box_from_a_draft() {
-        for kind in ["claude", "codex", "cursor", "gemini", "opencode", "pi"] {
+        for kind in ["claude", "codex", "cursor", "gemini", "opencode", "pi", "omp"] {
             assert_eq!(check(kind, &fixture(&format!("{kind}-empty"))), Draft::Empty, "{kind} empty");
             assert_eq!(check(kind, &fixture(&format!("{kind}-draft"))), Draft::Typed, "{kind} draft");
         }
