@@ -280,10 +280,13 @@ fn pr_event(events: &[&str], summary: &pr::Summary) -> &'static str {
 /// t-0040 PR merged, new report; t-0043 blocked on a prompt`.
 /// Built from item kinds, file-name-safe subjects and this binary's fixed
 /// event phrases only; summaries may quote reports or GitHub and are never
-/// used.
+/// used. Newest first, so a backlog of older items cannot hide what just
+/// happened.
 pub fn nudge_text(items: &[inbox::Item]) -> String {
+    let mut ordered: Vec<&inbox::Item> = items.iter().collect();
+    ordered.sort_by(|a, b| b.id.cmp(&a.id));
     let mut parts: Vec<(String, Vec<String>)> = Vec::new();
-    for item in items {
+    for item in ordered {
         let subject = inbox::safe_subject(&item.subject);
         let who = match item.kind.as_str() {
             "routine" | "routine-approval" => format!("routine {subject}"),
@@ -773,6 +776,27 @@ mod tests {
         assert!(!text.contains("IGNORE"));
         // Items written before events existed fall back to their kind.
         assert_eq!(nudge_text(&[item("config-error", "PROJECT.md", "")]), "[hp inbox] project-md config error");
+    }
+
+    #[test]
+    fn the_nudge_line_names_the_newest_events_first() {
+        // Real inbox ids start with a UTC timestamp, so id order is time
+        // order. The line must lead with the newest, not the oldest, or a
+        // backlog would hide the event that just happened.
+        let item = |id: &str, subject: &str, event: &str| inbox::Item {
+            id: id.into(),
+            kind: "thread-state".into(),
+            subject: subject.into(),
+            event: event.into(),
+            ..Default::default()
+        };
+        let items = [
+            item("20260101T000001Z-thread-state-t-0001-1", "t-0001", "idle"),
+            item("20260104T000004Z-thread-state-t-0004-4", "t-0004", "PR merged"),
+            item("20260102T000002Z-thread-state-t-0002-2", "t-0002", "new report"),
+            item("20260103T000003Z-thread-state-t-0003-3", "t-0003", "resolved"),
+        ];
+        assert_eq!(nudge_text(&items), "[hp inbox] t-0004 PR merged; t-0003 resolved; t-0002 new report; t-0001 idle");
     }
 
     #[test]

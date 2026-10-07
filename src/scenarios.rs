@@ -925,8 +925,8 @@ fn a_nudge_waits_while_the_coordinators_box_holds_a_draft_and_goes_out_once_afte
     for _ in 0..3 {
         ticker::tick_project_with(&ctx, &project, &mut memory).unwrap();
     }
-    // One line naming what happened, from ids and fixed phrases only.
-    assert_eq!(nudges(&world), ["[hp inbox] t-0001 PR merged; t-0002 blocked on a prompt"]);
+    // One line naming what happened, newest first, from ids and fixed phrases only.
+    assert_eq!(nudges(&world), ["[hp inbox] t-0002 blocked on a prompt; t-0001 PR merged"]);
 }
 
 #[test]
